@@ -117,7 +117,7 @@ class Migration(migrations.Migration):
     ]
 ```
 
-According to many Stackoverflow reports (for example [this one](https://stackoverflow.com/questions/46945013/django-migrations-changing-choices-value), or [this one](https://stackoverflow.com/questions/30630121/django-charfield-choices-and-migration), or even [this one](https://stackoverflow.com/questions/31788450/stop-django-from-creating-migrations-if-the-list-of-choices-of-a-field-changes)) which reference various Django bugs (ultimately pointing to [bug 22837](https://code.djangoproject.com/ticket/22837), this behavior is by design.
+According to many Stackoverflow reports (for example [this one](https://stackoverflow.com/questions/46945013/django-migrations-changing-choices-value), or [this one](https://stackoverflow.com/questions/30630121/django-charfield-choices-and-migration), or even [this one](https://stackoverflow.com/questions/31788450/stop-django-from-creating-migrations-if-the-list-of-choices-of-a-field-changes)) which reference various Django bugs (ultimately pointing to [bug 22837](https://code.djangoproject.com/ticket/22837)), this behavior is by design.
 
 In most cases this is not an issue at all, but I've found it particularly annoying when my project:
 
