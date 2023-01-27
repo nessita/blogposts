@@ -1,4 +1,4 @@
-I've been spending a few hours going through some investigation and trial-and-error to come up with a way to have my Django model define a `CharField` with choices taken from a settings value, and avoid migrations being generated every time the settings change.
+I've been spending a non trivial amount of time going through some investigation and trial-and-error attempts to come up with a way to have my Django model define a `CharField` with choices taken from a settings value, and avoid migrations being generated every time the settings change.
 
 Since this task proved to be more challenging than what I anticipated, I decided to write my first blogpost ever.
 
@@ -19,7 +19,7 @@ class Expense(models.Model):
     what = models.TextField()
     when = models.DateTimeField(default=now)
     amount = models.DecimalField(decimal_places=2, max_digits=20)
-    tag = models.CharField(max_length=2,choices=Tag.choices)
+    tag = models.CharField(max_length=2, choices=Tag.choices)
 ```
 
 with it corresponding initial migration:
@@ -128,6 +128,67 @@ Concretely, my pet project for expense tracking uses [django_countries](https://
 
 So, given the above, and following the expense tag example from above (where the list of tag choices is very likely to be customized by each setup of the expense tracking system), I started investigating how to allow for tag list customization via settings without generating migrations every time that tag list changes.
 
-After reading the Stackoverflow posts and their linked bugs, I concluded that (in theory) this issue would be workaround-able by [passing a callable to choices](https://code.djangoproject.com/ticket/22837#comment:4). This approach made total sense to me and I went happily and quickly to create a PR with this change.
+After reading the Stackoverflow posts and their linked bugs, I concluded that (in theory) this issue would be workaround-able by [passing a callable to choices](https://code.djangoproject.com/ticket/22837#comment:4). This approach made total sense to me and I went happily and quickly to create a PR with this change:
 
+```diff
+--- a/choices-no-migrations/example/expenses/models.py
++++ b/choices-no-migrations/example/expenses/models.py
+@@ -13,4 +13,4 @@ class Expense(models.Model):
+     what = models.TextField()
+     when = models.DateTimeField(default=now)
+     amount = models.DecimalField(decimal_places=2, max_digits=20)
+-    tag = models.CharField(max_length=2, choices=Tag.choices)
++    tag = models.CharField(max_length=2, choices=lambda: Tag.choices)
+```
 
+then I ran the tests to ensure things worked as expected, but...
+
+```
+ERRORS:
+expenses.Expense.tag: (fields.E004) 'choices' must be an iterable (e.g., a list or tuple).
+```
+
+Naturally, I searched for the documentation to check how the callable should be passed to the `choices` param (at the time of this writing, the doc is [this one](https://docs.djangoproject.com/en/4.1/ref/models/fields/#django.db.models.Field.choices)), and to my surprise there was no mention of allowing a callable at all.
+
+Some more googling and I came across [this other post](https://stackoverflow.com/questions/33514058/django-creates-pointless-migrations-on-choices-list-change/33514551#33514551), where the most voted response says *I think you're mixing up the `choices` argument on a `Model` field, and that on a `forms.ChoiceField` field.*
+
+Eureka! I was (also) indeed mixing up the two fields: not in my head, but my searches weren't specific enough, and the search results were sort of also mixing those two up. So back to square zero where I need my tag list to be taken from a settings value and ideally not having new migrations generated when that settings change.
+
+I tried a few things that did not work out, until a colleague suggested that I may need to edit the latest migration to replace the explicit tag list with the variable definition, and this way the "migration system" would be happy enough that `Tag.choices` is not changing thus not producing a new migration on tags change. So:
+
+```diff
+--- a/choices-no-migrations/example/expenses/migrations/0001_initial.py
++++ b/choices-no-migrations/example/expenses/migrations/0001_initial.py
+@@ -3,6 +3,8 @@
+ from django.db import migrations, models
+ import django.utils.timezone
+
++from expenses.models import Expense
++
+
+ class Migration(migrations.Migration):
+
+@@ -35,12 +37,7 @@ class Migration(migrations.Migration):
+                 (
+                     'tag',
+                     models.CharField(
+-                        choices=[
+-                            ('FD', 'Food'),
+-                            ('HS', 'Housing'),
+-                            ('TR', 'Transportation'),
+-                            ('UT', 'Utilities'),
+-                        ],
++                        choices=Expense.Tag.choices,
+                         max_length=2,
+                     ),
+                 ),
+```
+
+would successfully allow for my use case! After this change, adding to or removing from the tag list and then running `makemigrations` would not detect any changes:
+
+```bash
+$ python manage.py makemigrations
+No changes detected
+```
+
+It's worth noting that after I completed my solution, and when I started writing this post, I've found a [similar writing from 2017](http://tech.yunojuno.com/pro-tip-django-choices-and-migrations) which proposes an analogue solution, but I figured this post was worth writing anyways since I spent hours banging my head against the desk until I solved it.

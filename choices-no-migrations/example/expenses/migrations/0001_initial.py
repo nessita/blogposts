@@ -3,6 +3,8 @@
 from django.db import migrations, models
 import django.utils.timezone
 
+from expenses.models import Expense
+
 
 class Migration(migrations.Migration):
 
@@ -35,12 +37,7 @@ class Migration(migrations.Migration):
                 (
                     'tag',
                     models.CharField(
-                        choices=[
-                            ('FD', 'Food'),
-                            ('HS', 'Housing'),
-                            ('TR', 'Transportation'),
-                            ('UT', 'Utilities'),
-                        ],
+                        choices=Expense.Tag.choices,
                         max_length=2,
                     ),
                 ),
