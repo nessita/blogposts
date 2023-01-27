@@ -1,3 +1,10 @@
 from django.test import TestCase
 
-# Create your tests here.
+from expenses.models import Expense
+
+
+class ExpenseTestCase(TestCase):
+    def test_tags(self):
+        expense = Expense.objects.create(amount='10.23', tag=Expense.Tag.FOOD)
+
+        self.assertEqual(expense.tag, Expense.Tag.FOOD)
