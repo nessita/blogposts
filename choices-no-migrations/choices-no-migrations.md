@@ -25,13 +25,14 @@ from django.db import models
 from django.utils.timezone import now
 
 
-class Expense(models.Model):
-    class Tag(models.TextChoices):
-        FOOD = 'FD'
-        HOUSING = 'HS'
-        TRANSPORTATION = 'TR'
-        UTILITIES = 'UT'
+class Tag(models.TextChoices):
+    FOOD = 'FD'
+    HOUSING = 'HS'
+    TRANSPORTATION = 'TR'
+    UTILITIES = 'UT'
 
+
+class Expense(models.Model):
     what = models.TextField()
     when = models.DateTimeField(default=now)
     amount = models.DecimalField(decimal_places=2, max_digits=20)
@@ -89,20 +90,19 @@ class Migration(migrations.Migration):
     ]
 ```
 
-Every time we change the definition of `Expense.Tag`, a new migration is
-generated. For example, suppose we add a new tag for `clothing`:
+Every time we change the definition of `Tag`, a new migration is generated.
+For example, suppose we add a new tag for `clothing`:
 
 ```diff
 --- a/choices-no-migrations/example/expenses/models.py
 +++ b/choices-no-migrations/example/expenses/models.py
 @@ -3,12 +3,13 @@ from django.db import models
 
- class Expense(models.Model):
-     class Tag(models.TextChoices):
-+        CLOTHING = 'CL'
-         FOOD = 'FD'
-         HOUSING = 'HS'
-         TRANSPORTATION = 'TR'
+ class Tag(models.TextChoices):
++    CLOTHING = 'CL'
+     FOOD = 'FD'
+     HOUSING = 'HS'
+     TRANSPORTATION = 'TR'
 ```
 
 Running `makemigrations` would generate a new one that looks like this:
@@ -223,7 +223,7 @@ update. So:
  from django.db import migrations, models
  import django.utils.timezone
 
-+from expenses.models import Expense
++from expenses.models import Tag
 +
 
  class Migration(migrations.Migration):
@@ -238,7 +238,7 @@ update. So:
 -                            ('TR', 'Transportation'),
 -                            ('UT', 'Utilities'),
 -                        ],
-+                        choices=Expense.Tag.choices,
++                        choices=Tag.choices,
                          max_length=2,
                      ),
                  ),
